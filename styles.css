@@ -552,8 +552,23 @@ button.col-sort.active[data-dir="asc"] .sort-icon { color: var(--gold); }
    row-gap NO colapsa, es consistente, y al ocultar juegos con display:none
    el hueco se redistribuye solo entre los visibles. */
 
-/* Al pasar el ratón: la fila respira; aparece la señal de 1 px de fósforo a la izquierda */
+/* Al pasar el ratón: la fila respira; resplandor sutil detrás de todo el juego */
 .game::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 60% 80% at 50% 50%, 
+      color-mix(in srgb, var(--green) 6%, transparent) 0%, 
+      color-mix(in srgb, var(--green) 2%, transparent) 40%, 
+      transparent 70%);
+  opacity: 0;
+  transition: opacity 0.35s var(--ease-out);
+  pointer-events: none;
+  z-index: -1;
+}
+/* Línea de fósforo fina a la izquierda (señal de foco, no decoración) */
+.game::after {
   content: '';
   position: absolute;
   left: 0;
@@ -565,29 +580,19 @@ button.col-sort.active[data-dir="asc"] .sort-icon { color: var(--gold); }
   transition: opacity 0.25s var(--ease-out);
   pointer-events: none;
 }
-/* vv25: el resplandor. Antes el hover pintaba la fila con un relleno opaco
-   (--row-bg: var(--hover) = #13150e), que era justo lo que mataba la
-   transparencia de la tabla. Ahora la luz entra desde la marca de 1 px y se
-   desvanece: sin borde derecho, sin tapa, y dejando ver el grano de fondo.
-   Capa con opacidad (nunca box-shadow), como manda DESIGN.md §3. */
-.game::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 9rem;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--green) 10%, transparent), color-mix(in srgb, var(--green) 3.5%, transparent) 38%, transparent 78%);
-  opacity: 0;
-  transition: opacity 0.25s var(--ease-out);
-  pointer-events: none;
-}
 @media (hover: hover) and (pointer: fine) {
-  .game:hover::after { opacity: 1; }
-  .game:hover::before { opacity: 0.55; }
+  .game:hover::before { 
+    opacity: 1; 
+    animation: gameGlow 3s ease-in-out infinite; 
+  }
+  .game:hover::after { opacity: 0.55; }
   .game:hover .name { transform: translateX(3px); }
   .game:hover .cover-thumb { transform: scale(1.06); }
   button.col-sort:hover { transform: translateY(-1px); }
+}
+@keyframes gameGlow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
 }
 
 .row { display: contents; }
