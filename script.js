@@ -224,22 +224,39 @@ function buildTable(list, cats) {
     });
   });
 
-  // Click en carátula → navega a subpágina del juego
+  // Click en carátula (pequeña o grande) → navega a subpágina del juego
+  function goToGame(idx) {
+    const game = currentGames[idx];
+    if (!game) return;
+    const slug = game.name.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    window.location.href = 'juego/' + slug + '.html';
+  }
+
+  // Carátula pequeña (thumbnail)
   const thumbs = $sheet.querySelectorAll('.cover-thumb');
   thumbs.forEach((thumb, idx) => {
     thumb.style.cursor = 'pointer';
     thumb.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const game = currentGames[idx];
-      if (game) {
-        const slug = game.name.toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '');
-        window.location.href = 'juego/' + slug + '.html';
-      }
+      goToGame(idx);
+    });
+  });
+
+  // Nombre del juego (carátula grande de fondo)
+  const names = $sheet.querySelectorAll('.name');
+  names.forEach((nameEl, idx) => {
+    nameEl.style.cursor = 'pointer';
+    nameEl.addEventListener('click', (e) => {
+      // No navegar si el click fue en un enlace o botón dentro
+      if (e.target.closest('a, button')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      goToGame(idx);
     });
   });
 
