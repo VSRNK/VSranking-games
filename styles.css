@@ -1061,11 +1061,9 @@ html.has-cur, html.has-cur * { cursor: none !important; }
   navigation: auto;
 }
 
-/* La carátula pequeña en la tabla y la grande en la subpágina comparten el mismo nombre */
-.cover-thumb,
-.name-bg {
-  view-transition-name: cover;
-}
+/* Los nombres únicos se asignan vía JS (ver script.js):
+   - index.html: .cover-thumb y .name-bg → 'cover-<slug>'
+   - juego/*.html: .name-bg → 'cover-<slug>' */
 
 /* Duración y easing globales */
 ::view-transition-old(root),
