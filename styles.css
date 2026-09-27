@@ -532,10 +532,11 @@ button.col-sort.active[data-dir="asc"] .sort-icon { color: var(--gold); }
   margin-bottom: 0.7rem;
   transition: opacity 0.28s var(--ease-out) var(--d, 0ms), transform 0.28s var(--ease-out) var(--d, 0ms);
 }
-.game:last-child { 
+.game:last-child,
+.game:last-of-type { 
   border-bottom: 0;
   /* Aire extra solo bajo el último juego (sin colapsar con siguiente) */
-  margin-bottom: 2.1rem; 
+  margin-bottom: 3.5rem !important; 
 }
 .game[hidden] { display: none; }
 .game.out {
