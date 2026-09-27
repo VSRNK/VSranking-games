@@ -15,10 +15,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: true
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Run cover download
         env:
@@ -63,71 +64,79 @@ jobs:
             }
             
             (async () => {
-              const csv = (await fetchURL(SHEET_URL)).toString('utf-8');
-              const lines = csv.split(/\\r?\\n/);
-              const hIdx = lines.findIndex(l => l.includes('Juego') && l.includes('Jugador'));
-              if (hIdx === -1) return;
-              
-              const rows = [];
-              for (let i = hIdx + 1; i < lines.length; i++) {
-                if (!lines[i].trim()) continue;
-                rows.push(parseCSVLine(lines[i]));
-              }
-              
-              const games = [];
-              for (let i = 0; i < rows.length; i += 2) {
-                const name = (rows[i][0] || '').replace(/^\"|\"$/g, '').trim();
-                if (!name) continue;
-                games.push({ name, slug: toSlug(name) });
-              }
-              
-              if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR);
-              
-              for (const g of games) {
-                const file = path.join(COVERS_DIR, g.slug + '.jpg');
-                if (fs.existsSync(file)) continue;
-                
-                // Steam
-                let ok = false;
-                try {
-                  const steam = await fetchURL('https://store.steampowered.com/api/storesearch/?term=' + encodeURIComponent(g.name) + '&l=spanish&cc=ES');
-                  const data = JSON.parse(steam.toString());
-                  if (data.items?.[0]?.id) {
-                    const url = 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/' + data.items[0].id + '/header.jpg';
-                    const img = await fetchURL(url);
-                    if (img && img.length > 1000) { fs.writeFileSync(file, img); ok = true; console.log('Steam:', g.name); }
-                  }
-                } catch {}
-                
-                // Wikipedia
-                if (!ok) try {
-                  const wiki = await fetchURL('https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=' + encodeURIComponent(g.name + ' video game') + '&prop=pageimages&pithumbsize=600&format=json');
-                  const data = JSON.parse(wiki.toString());
-                  for (const pid of Object.keys(data.query?.pages || {})) {
-                    const p = data.query.pages[pid];
-                    if (p.thumbnail?.source) {
-                      const img = await fetchURL(p.thumbnail.source);
-                      if (img && img.length > 1000) { fs.writeFileSync(file, img); ok = true; console.log('Wiki:', g.name); break; }
-                    }
-                  }
-                } catch {}
-                
-                if (!ok) console.log('No cover:', g.name);
-              }
-              
-              // Commit if changed
-              const { execSync } = require('child_process');
               try {
-                execSync('git config user.name \"github-actions[bot]\" && git config user.email \"41898282+github-actions[bot]@users.noreply.github.com\"', { stdio: 'ignore' });
-                execSync('git add covers/', { stdio: 'ignore' });
-                const status = execSync('git status --porcelain').toString().trim();
-                if (status) {
-                  execSync('git commit -m \"chore: add new covers [skip ci]\"', { stdio: 'ignore' });
-                  execSync('git push', { stdio: 'ignore' });
-                  console.log('Pushed new covers');
-                } else {
-                  console.log('No new covers');
+                const csv = (await fetchURL(SHEET_URL)).toString('utf-8');
+                const lines = csv.split(/\\r?\\n/);
+                const hIdx = lines.findIndex(l => l.includes('Juego') && l.includes('Jugador'));
+                if (hIdx === -1) { console.log('Header not found'); return; }
+                
+                const rows = [];
+                for (let i = hIdx + 1; i < lines.length; i++) {
+                  if (!lines[i].trim()) continue;
+                  rows.push(parseCSVLine(lines[i]));
                 }
-              } catch (e) { console.log('Git error:', e.message); }
+                
+                const games = [];
+                for (let i = 0; i < rows.length; i += 2) {
+                  const name = (rows[i][0] || '').replace(/^\"|\"$/g, '').trim();
+                  if (!name) continue;
+                  games.push({ name, slug: toSlug(name) });
+                }
+                
+                if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR);
+                
+                let downloaded = 0;
+                for (const g of games) {
+                  const file = path.join(COVERS_DIR, g.slug + '.jpg');
+                  if (fs.existsSync(file)) continue;
+                  
+                  // Steam
+                  let ok = false;
+                  try {
+                    const steam = await fetchURL('https://store.steampowered.com/api/storesearch/?term=' + encodeURIComponent(g.name) + '&l=spanish&cc=ES');
+                    const data = JSON.parse(steam.toString());
+                    if (data.items?.[0]?.id) {
+                      const url = 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/' + data.items[0].id + '/header.jpg';
+                      const img = await fetchURL(url);
+                      if (img && img.length > 1000) { fs.writeFileSync(file, img); ok = true; console.log('Steam:', g.name); downloaded++; }
+                    }
+                  } catch (e) { console.log('Steam error for', g.name, ':', e.message); }
+                  
+                  // Wikipedia
+                  if (!ok) try {
+                    const wiki = await fetchURL('https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=' + encodeURIComponent(g.name + ' video game') + '&prop=pageimages&pithumbsize=600&format=json');
+                    const data = JSON.parse(wiki.toString());
+                    for (const pid of Object.keys(data.query?.pages || {})) {
+                      const p = data.query.pages[pid];
+                      if (p.thumbnail?.source) {
+                        const img = await fetchURL(p.thumbnail.source);
+                        if (img && img.length > 1000) { fs.writeFileSync(file, img); ok = true; console.log('Wiki:', g.name); downloaded++; break; }
+                      }
+                    }
+                  } catch (e) { console.log('Wiki error for', g.name, ':', e.message); }
+                  
+                  if (!ok) console.log('No cover:', g.name);
+                }
+                
+                // Commit if changed
+                const { execSync } = require('child_process');
+                try {
+                  execSync('git config user.name \"github-actions[bot]\" && git config user.email \"41898282+github-actions[bot]@users.noreply.github.com\"', { stdio: 'ignore' });
+                  execSync('git add covers/', { stdio: 'ignore' });
+                  const status = execSync('git status --porcelain').toString().trim();
+                  if (status) {
+                    execSync('git commit -m \"chore: add new covers [skip ci]\"', { stdio: 'ignore' });
+                    execSync('git push', { stdio: 'ignore' });
+                    console.log('Pushed new covers');
+                  } else {
+                    console.log('No new covers');
+                  }
+                } catch (e) { console.log('Git error:', e.message); }
+                
+                console.log('Done. Downloaded:', downloaded);
+              } catch (e) {
+                console.error('Fatal error:', e.message);
+                process.exit(1);
+              }
             })();
           "
