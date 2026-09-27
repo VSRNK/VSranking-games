@@ -474,6 +474,10 @@ main {
   --cols: var(--c1) var(--c2) repeat(9, minmax(5.5rem, 1fr)) 5.5rem;
   min-width: 88rem;
   padding: 0.55rem 0.7rem 0.9rem;
+  /* row-gap: espacio real entre filas del grid (head + cada .game).
+     1.4rem = aire visible arriba + abajo de cada juego (no colapsa).
+     Al filtrar (display:none), el gap se redistribuye solo entre visibles. */
+  row-gap: 1.4rem;
 }
 .head, .game { display: grid; grid-template-columns: var(--cols); }
 
@@ -525,19 +529,15 @@ button.col-sort.active[data-dir="asc"] .sort-icon { color: var(--gold); }
   position: relative;
   background: var(--row-bg);
   border-bottom: 1px solid var(--line-faint);
-  /* vv27b: aire ABAJO. El margin-top de `.game + .game` pone el aire sobre cada
-     juego y nada debajo, así que el último quedaba pegado al final de la hoja.
-     Con las dos mitades, el aire es simétrico y los 8 huecos ENTRE juegos NO se
-     duplican: los márgenes hermanos colapsan a max(0,7; 0,7) = 0,7rem. Lo único
-     que aparece es el hueco que faltaba bajo el último (+11,2px de hoja). */
-  margin-bottom: 0.7rem;
+  /* Sin márgenes verticales: el espacio entre juegos lo gestiona row-gap del .grid
+     (no colapsa, es consistente, y respeta display:none en filtros). */
   transition: opacity 0.28s var(--ease-out) var(--d, 0ms), transform 0.28s var(--ease-out) var(--d, 0ms);
 }
 .game:last-child,
 .game:last-of-type { 
   border-bottom: 0;
-  /* Aire extra solo bajo el último juego (sin colapsar con siguiente) */
-  margin-bottom: 3.5rem !important; 
+  /* Aire extra solo bajo el último juego (al final de la página) */
+  margin-bottom: 3.5rem; 
 }
 .game[hidden] { display: none; }
 .game.out {
@@ -548,18 +548,9 @@ button.col-sort.active[data-dir="asc"] .sort-icon { color: var(--gold); }
   pointer-events: none;
 }
 
-/* vv27: aire entre juegos. En escritorio no había separación —lo único era el
-   pelo de 1 px de --line-faint, demasiado débil para reencontrar una fila al
-   cruzar 12 columnas—. El separador es espacio, no un fondo: la hoja es
-   transparente por contrato (vv23/vv25) y el grano del mundo tiene que seguir
-   viéndose a través del hueco. 0.7rem queda deliberadamente POR DEBAJO del
-   0.95rem de móvil: los márgenes hermanos colapsan a max(), así que las
-   tarjetas de móvil no se mueven (verificado: siguen a 15,2 px). Se usa `+` y
-   no margin-top en todas, para que el PRIMER juego no empuje a la cabecera;
-   el aire de abajo lo pone el `margin-bottom` del propio `.game` (ver vv27b
-   arriba). Con filtros (.game[hidden] es display:none) el hueco cae siempre
-   entre los juegos visibles, ni se acumula ni se pierde. */
-.game + .game { margin-top: 0.7rem; }
+/* vv27: aire entre juegos gestionado por row-gap en .grid (no por márgenes).
+   row-gap NO colapsa, es consistente, y al ocultar juegos con display:none
+   el hueco se redistribuye solo entre los visibles. */
 
 /* Al pasar el ratón: la fila respira; aparece la señal de 1 px de fósforo a la izquierda */
 .game::before {
