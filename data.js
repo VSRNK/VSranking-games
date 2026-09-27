@@ -1,7 +1,7 @@
 /*
   Datos sincronizados con Google Sheets. Generado automáticamente por server.js
 */
-const CATS = [
+window.CATS = [
   "Historia",
   "Jugabilidad",
   "Originalidad",
@@ -12,7 +12,7 @@ const CATS = [
   "Extras",
   "Personajes"
 ];
-const GAMES = [
+window.GAMES = [
   {
     "name": "God of War: Chains of Olympus",
     "cover": "covers/god-of-war-chains-of-olympus.jpg",
