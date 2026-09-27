@@ -1,0 +1,133 @@
+name: Download covers
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # every 6 hours
+  workflow_dispatch:       # manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  covers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run cover download
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          node -e "
+            const https = require('https');
+            const fs = require('fs');
+            const path = require('path');
+            
+            const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1c0RMIpkBoRhgdFwdL76WXYa5wXf_dSzQB1owI-w7CNk/export?format=csv';
+            const COVERS_DIR = 'covers';
+            
+            function fetchURL(url) {
+              return new Promise((resolve, reject) => {
+                https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 15000 }, res => {
+                  if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                    return fetchURL(res.headers.location).then(resolve).catch(reject);
+                  }
+                  if (res.statusCode !== 200) return reject(new Error('HTTP ' + res.statusCode));
+                  const chunks = [];
+                  res.on('data', c => chunks.push(c));
+                  res.on('end', () => resolve(Buffer.concat(chunks)));
+                }).on('error', reject).on('timeout', () => reject(new Error('Timeout')));
+              });
+            }
+            
+            function toSlug(str) {
+              return str.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+            }
+            
+            function parseCSVLine(text) {
+              const r = []; let cur = ''; let inQ = false;
+              for (let i = 0; i < text.length; i++) {
+                const c = text[i];
+                if (c === '"') { if (inQ && text[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+                else if (c === ',' && !inQ) { r.push(cur.trim()); cur = ''; }
+                else cur += c;
+              }
+              r.push(cur.trim()); return r;
+            }
+            
+            (async () => {
+              const csv = (await fetchURL(SHEET_URL)).toString('utf-8');
+              const lines = csv.split(/\\r?\\n/);
+              const hIdx = lines.findIndex(l => l.includes('Juego') && l.includes('Jugador'));
+              if (hIdx === -1) return;
+              
+              const rows = [];
+              for (let i = hIdx + 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                rows.push(parseCSVLine(lines[i]));
+              }
+              
+              const games = [];
+              for (let i = 0; i < rows.length; i += 2) {
+                const name = (rows[i][0] || '').replace(/^\"|\"$/g, '').trim();
+                if (!name) continue;
+                games.push({ name, slug: toSlug(name) });
+              }
+              
+              if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR);
+              
+              for (const g of games) {
+                const file = path.join(COVERS_DIR, g.slug + '.jpg');
+                if (fs.existsSync(file)) continue;
+                
+                // Steam
+                let ok = false;
+                try {
+                  const steam = await fetchURL('https://store.steampowered.com/api/storesearch/?term=' + encodeURIComponent(g.name) + '&l=spanish&cc=ES');
+                  const data = JSON.parse(steam.toString());
+                  if (data.items?.[0]?.id) {
+                    const url = 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/' + data.items[0].id + '/header.jpg';
+                    const img = await fetchURL(url);
+                    if (img && img.length > 1000) { fs.writeFileSync(file, img); ok = true; console.log('Steam:', g.name); }
+                  }
+                } catch {}
+                
+                // Wikipedia
+                if (!ok) try {
+                  const wiki = await fetchURL('https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=' + encodeURIComponent(g.name + ' video game') + '&prop=pageimages&pithumbsize=600&format=json');
+                  const data = JSON.parse(wiki.toString());
+                  for (const pid of Object.keys(data.query?.pages || {})) {
+                    const p = data.query.pages[pid];
+                    if (p.thumbnail?.source) {
+                      const img = await fetchURL(p.thumbnail.source);
+                      if (img && img.length > 1000) { fs.writeFileSync(file, img); ok = true; console.log('Wiki:', g.name); break; }
+                    }
+                  }
+                } catch {}
+                
+                if (!ok) console.log('No cover:', g.name);
+              }
+              
+              // Commit if changed
+              const { execSync } = require('child_process');
+              try {
+                execSync('git config user.name \"github-actions[bot]\" && git config user.email \"41898282+github-actions[bot]@users.noreply.github.com\"', { stdio: 'ignore' });
+                execSync('git add covers/', { stdio: 'ignore' });
+                const status = execSync('git status --porcelain').toString().trim();
+                if (status) {
+                  execSync('git commit -m \"chore: add new covers [skip ci]\"', { stdio: 'ignore' });
+                  execSync('git push', { stdio: 'ignore' });
+                  console.log('Pushed new covers');
+                } else {
+                  console.log('No new covers');
+                }
+              } catch (e) { console.log('Git error:', e.message); }
+            })();
+          "
