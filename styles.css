@@ -525,18 +525,19 @@ button.col-sort.active[data-dir="asc"] .sort-icon { color: var(--gold); }
   position: relative;
   background: var(--row-bg);
   border-bottom: 1px solid var(--line-faint);
-  /* Aire inferior real: margin-bottom (no colapsa si el siguiente usa padding-top) */
-  margin-bottom: 0.7rem;
+  /* Espacio inferior REAL: padding-bottom (dentro del elemento, no colapsa).
+     El pelo de 1px queda al final del padding, separando visualmente. */
+  padding-bottom: 0.7rem;
   transition: opacity 0.28s var(--ease-out) var(--d, 0ms), transform 0.28s var(--ease-out) var(--d, 0ms);
 }
-/* Aire superior conservado: padding-top en juegos subsiguientes (no colapsa con margin-bottom anterior).
-   El selector + apunta al segundo juego de cada par adyacente. */
-.game + .game { padding-top: 0.7rem; }
+/* Espacio superior original conservado: margin-top en juegos subsiguientes.
+   Con el padding-bottom del anterior + este margin-top = 1.4rem visuales entre juegos. */
+.game + .game { margin-top: 0.7rem; }
 .game:last-child,
 .game:last-of-type { 
   border-bottom: 0;
   /* Aire extra solo bajo el último juego */
-  margin-bottom: 3.5rem; 
+  padding-bottom: 3.5rem; 
 }
 .game[hidden] { display: none; }
 .game.out {
