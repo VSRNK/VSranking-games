@@ -528,8 +528,10 @@ button.col-sort.active[data-dir="asc"] .sort-icon { color: var(--gold); }
      juego y nada debajo, así que el último quedaba pegado al final de la hoja.
      Con las dos mitades, el aire es simétrico y los 8 huecos ENTRE juegos NO se
      duplican: los márgenes hermanos colapsan a max(0,7; 0,7) = 0,7rem. Lo único
-     que aparece es el hueco que faltaba bajo el último (+11,2px de hoja). */
-  margin-bottom: 0.7rem;
+     que aparece es el hueco que faltaba bajo el último (+11,2px de hoja).
+     Aumentado margin-bottom para más aire visual debajo de cada juego (sin tocar
+     el margin-top superior). */
+  margin-bottom: 1.4rem;
   transition: opacity 0.28s var(--ease-out) var(--d, 0ms), transform 0.28s var(--ease-out) var(--d, 0ms);
 }
 .game:last-child { border-bottom: 0; }
