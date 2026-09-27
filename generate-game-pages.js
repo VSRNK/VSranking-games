@@ -17,8 +17,8 @@ function toSlug(str) {
 function extractGamesFromDataJs() {
   const content = fs.readFileSync('data.js', 'utf-8');
   
-  // Buscar el array GAMES usando regex
-  const gamesMatch = content.match(/const GAMES\s*=\s*(\[[\s\S]*?\]);/);
+  // Buscar el array GAMES usando regex (window.GAMES o const GAMES)
+  const gamesMatch = content.match(/window\.GAMES\s*=\s*(\[[\s\S]*?\]);/) || content.match(/const GAMES\s*=\s*(\[[\s\S]*?\]);/);
   if (!gamesMatch) {
     throw new Error('No se encontró el array GAMES en data.js');
   }
@@ -45,14 +45,24 @@ function generateGamePage(game) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../styles.css?v=48">
+<link rel="stylesheet" href="../styles.css?v=54">
 </head>
 <body class="game-page">
 <a href="../index.html" class="back-btn">← Volver</a>
-<script src="../data.js?v=48"></script>
-<script type="module" src="../script.js?v=48"></script>
+<h1 class="game-title">${escapeHtml(game.name)}</h1>
+<script src="../data.js?v=54"></script>
+<script type="module" src="../script.js?v=54"></script>
 </body>
 </html>`;
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&")
+    .replace(/</g, "<")
+    .replace(/>/g, ">")
+    .replace(/"/g, "\"")
+    .replace(/'/g, "'");
 }
 
 function main() {

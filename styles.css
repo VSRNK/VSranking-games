@@ -1055,3 +1055,24 @@ html.has-cur, html.has-cur * { cursor: none !important; }
   outline: 2px solid var(--green);
   outline-offset: 2px;
 }
+
+/* ——— Título del juego en subpágina ——— */
+.game-page .game-title {
+  margin: 0;
+  padding: 3rem 1.5rem 1.5rem;
+  font-family: var(--head);
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--fg);
+  text-align: center;
+  text-wrap: balance;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  /* Máximo 2 líneas */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
