@@ -224,6 +224,25 @@ function buildTable(list, cats) {
     });
   });
 
+  // Click en carátula → navega a subpágina del juego
+  const thumbs = $sheet.querySelectorAll('.cover-thumb');
+  thumbs.forEach((thumb, idx) => {
+    thumb.style.cursor = 'pointer';
+    thumb.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const game = currentGames[idx];
+      if (game) {
+        const slug = game.name.toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        window.location.href = 'juego/' + slug + '.html';
+      }
+    });
+  });
+
   setupRovingTabindex();
   render();
 }
