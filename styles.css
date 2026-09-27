@@ -474,10 +474,6 @@ main {
   --cols: var(--c1) var(--c2) repeat(9, minmax(5.5rem, 1fr)) 5.5rem;
   min-width: 88rem;
   padding: 0.55rem 0.7rem 0.9rem;
-  /* row-gap: espacio real entre filas del grid (head + cada .game).
-     1.4rem = aire visible arriba + abajo de cada juego (no colapsa).
-     Al filtrar (display:none), el gap se redistribuye solo entre visibles. */
-  row-gap: 1.4rem;
 }
 .head, .game { display: grid; grid-template-columns: var(--cols); }
 
@@ -529,8 +525,9 @@ button.col-sort.active[data-dir="asc"] .sort-icon { color: var(--gold); }
   position: relative;
   background: var(--row-bg);
   border-bottom: 1px solid var(--line-faint);
-  /* Sin márgenes verticales: el espacio entre juegos lo gestiona row-gap del .grid
-     (no colapsa, es consistente, y respeta display:none en filtros). */
+  /* Aire real entre juegos: margin-bottom SIN margin-top adyacente → no colapsa.
+     1.4rem = separación visible entre cada juego. */
+  margin-bottom: 1.4rem;
   transition: opacity 0.28s var(--ease-out) var(--d, 0ms), transform 0.28s var(--ease-out) var(--d, 0ms);
 }
 .game:last-child,
