@@ -552,47 +552,11 @@ button.col-sort.active[data-dir="asc"] .sort-icon { color: var(--gold); }
    row-gap NO colapsa, es consistente, y al ocultar juegos con display:none
    el hueco se redistribuye solo entre los visibles. */
 
-/* Al pasar el ratón: la fila respira; resplandor sutil detrás de todo el juego */
-.game::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: 
-    radial-gradient(ellipse 60% 80% at 50% 50%, 
-      color-mix(in srgb, var(--green) 6%, transparent) 0%, 
-      color-mix(in srgb, var(--green) 2%, transparent) 40%, 
-      transparent 70%);
-  opacity: 0;
-  transition: opacity 0.35s var(--ease-out);
-  pointer-events: none;
-  z-index: -1;
-}
-/* Línea de fósforo fina a la izquierda (señal de foco, no decoración) */
-.game::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.55rem;
-  bottom: 0.55rem;
-  width: 1px;
-  background: linear-gradient(180deg, transparent, var(--green) 30%, var(--green) 70%, transparent);
-  opacity: 0;
-  transition: opacity 0.25s var(--ease-out);
-  pointer-events: none;
-}
+/* Sin hover en los juegos (por decisión de diseño) */
 @media (hover: hover) and (pointer: fine) {
-  .game:hover::before { 
-    opacity: 1; 
-    animation: gameGlow 3s ease-in-out infinite; 
-  }
-  .game:hover::after { opacity: 0.55; }
   .game:hover .name { transform: translateX(3px); }
   .game:hover .cover-thumb { transform: scale(1.06); }
   button.col-sort:hover { transform: translateY(-1px); }
-}
-@keyframes gameGlow {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.02); }
 }
 
 .row { display: contents; }
