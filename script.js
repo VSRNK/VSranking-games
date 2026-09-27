@@ -567,10 +567,11 @@ async function syncWithSheet() {
       return;
     }
     const { cats, rawGames } = parseGoogleSheetsCSV(csvText);
-    // Convertir rawGames al formato que espera la app (con cover null, se usará data.js como fallback)
+    // Preservar carátulas existentes (de data.js o sync previo)
+    const coverMap = new Map(baseGames.map(g => [g.name, g.cover]));
     const games = rawGames.map(g => ({
       name: g.name,
-      cover: null,
+      cover: coverMap.get(g.name) || null,
       players: g.players
     }));
     applyData(games, cats, hash);
