@@ -1055,27 +1055,3 @@ html.has-cur, html.has-cur * { cursor: none !important; }
   outline: 2px solid var(--green);
   outline-offset: 2px;
 }
-
-/* ——— View Transitions API: animación de carátula entre páginas ——— */
-@view-transition {
-  navigation: auto;
-}
-
-/* Los nombres únicos se asignan vía JS (ver script.js):
-   - index.html: .cover-thumb y .name-bg → 'cover-<slug>'
-   - juego/*.html: .name-bg → 'cover-<slug>' */
-
-/* Duración y easing globales */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 0.35s;
-  animation-timing-function: var(--ease-out);
-}
-
-/* Reducir movimiento: sin animación de transición */
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 0.01s;
-  }
-}

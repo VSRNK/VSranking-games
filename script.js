@@ -6,15 +6,6 @@ const $count = document.getElementById('count');
 const $sheetLink = document.querySelector('.sheet-link');
 const $stats = document.getElementById('stats');
 
-// View Transitions en subpágina de juego: asignar nombre único a .name-bg
-if (document.body.classList.contains('game-page')) {
-  const slug = location.pathname.split('/').pop()?.replace('.html', '');
-  if (slug) {
-    const nameBg = document.querySelector('.name-bg');
-    if (nameBg) nameBg.style.viewTransitionName = 'cover-' + slug;
-  }
-}
-
 // URL del CSV de Google Sheets (gviz endpoint)
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1c0RMIpkBoRhgdFwdL76WXYa5wXf_dSzQB1owI-w7CNk/export?format=csv';
 
@@ -254,16 +245,6 @@ function buildTable(list, cats) {
       e.stopPropagation();
       goToGame(idx);
     });
-    // View Transitions: nombre único por juego
-    const game = currentGames[idx];
-    if (game) {
-      const slug = game.name.toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      thumb.style.viewTransitionName = 'cover-' + slug;
-    }
   });
 
   // Nombre del juego (carátula grande de fondo)
@@ -277,17 +258,6 @@ function buildTable(list, cats) {
       e.stopPropagation();
       goToGame(idx);
     });
-    // View Transitions: mismo nombre único en la carátula grande (name-bg)
-    const game = currentGames[idx];
-    if (game) {
-      const slug = game.name.toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      const nameBg = nameEl.querySelector('.name-bg');
-      if (nameBg) nameBg.style.viewTransitionName = 'cover-' + slug;
-    }
   });
 
   setupRovingTabindex();
