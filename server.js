@@ -1,11 +1,14 @@
-const http = require('http');
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+import http from 'http';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
+import { parseGoogleSheetsCSV, parseScores as parseScoresImported, toSlug } from './parser.js';
 
 const PORT = 8080;
-const BASE_DIR = __dirname;
+const __filename = fileURLToPath(import.meta.url);
+const BASE_DIR = path.dirname(__filename);
 const COVERS_DIR = path.join(BASE_DIR, 'covers');
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1c0RMIpkBoRhgdFwdL76WXYa5wXf_dSzQB1owI-w7CNk/export?format=csv';
 
@@ -25,13 +28,7 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
-function toSlug(str) {
-  return str
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
+// toSlug importado desde parser.js
 
 // ——— fetchURL con timeout y reintentos de redirección ———
 function fetchURL(url, headers = {}) {
@@ -151,83 +148,9 @@ async function searchAndDownloadCover(gameName, slug) {
   return enqueueCover(gameName, slug);
 }
 
-function parseCSVLine(text) {
-  const result = [];
-  let cur = '';
-  let inQuote = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c === '"') {
-      if (inQuote && text[i + 1] === '"') {
-        cur += '"';
-        i++;
-      } else {
-        inQuote = !inQuote;
-      }
-    } else if (c === ',' && !inQuote) {
-      result.push(cur.trim());
-      cur = '';
-    } else {
-      cur += c;
-    }
-  }
-  result.push(cur.trim());
-  return result;
-}
-
-// ——— syncGoogleSheets recibe el texto CSV ya descargado (evita doble fetch) ———
+// ——— syncGoogleSheets usando parser compartido ———
 async function syncGoogleSheets(csvText) {
-  const text = csvText;
-  const lines = text.split(/\r?\n/);
-
-  const hIdx = lines.findIndex(l => l.includes('Juego') && l.includes('Jugador'));
-  if (hIdx === -1) {
-    throw new Error('Formato de cabecera no válido en Google Sheets');
-  }
-
-  const headCols = parseCSVLine(lines[hIdx]);
-  // Columnas 1 a 9 son las categorías
-  const cats = headCols.slice(1, 10).map(c => c.replace(/^"|"$/g, '').trim());
-
-  const rows = [];
-  for (let i = hIdx + 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    rows.push(parseCSVLine(lines[i]));
-  }
-
-  const rawGames = [];
-  for (let i = 0; i < rows.length; i += 2) {
-    const r1 = rows[i];
-    const r2 = rows[i + 1] || [];
-    const name = (r1[0] || '').replace(/^"|"$/g, '').trim();
-    if (!name) continue;
-
-    const parseScores = (r) => {
-      const vals = [];
-      for (let c = 1; c <= 9; c++) {
-        const raw = (r[c] || '').replace(/^"|"$/g, '').replace(',', '.').trim();
-        if (!raw) {
-          vals.push(null);           // casilla vacía → sin puntuar
-        } else {
-          const num = parseFloat(raw);
-          vals.push(isNaN(num) ? null : num); // 0 explícito se queda como 0
-        }
-      }
-      return vals.some(v => v !== null) ? vals : null;
-    };
-
-    const p1Name = (r1[11] || 'Sele').replace(/^"|"$/g, '').trim();
-    const p2Name = (r2[11] || 'Vande').replace(/^"|"$/g, '').trim();
-
-    rawGames.push({
-      name,
-      slug: toSlug(name),
-      players: [
-        { name: p1Name, scores: parseScores(r1) },
-        { name: p2Name, scores: parseScores(r2) }
-      ]
-    });
-  }
+  const { cats, rawGames } = parseGoogleSheetsCSV(csvText);
 
   // Buscar / verificar carátulas con límite de concurrencia
   const games = await Promise.all(rawGames.map(async (g) => {

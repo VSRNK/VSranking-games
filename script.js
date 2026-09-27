@@ -1,8 +1,13 @@
+import { parseGoogleSheetsCSV } from './parser.js';
+
 const $q = document.getElementById('q');
 const $results = document.getElementById('results');
 const $count = document.getElementById('count');
 const $sheetLink = document.querySelector('.sheet-link');
 const $stats = document.getElementById('stats');
+
+// URL del CSV de Google Sheets (gviz endpoint)
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1c0RMIpkBoRhgdFwdL76WXYa5wXf_dSzQB1owI-w7CNk/export?format=csv';
 
 // Búsqueda compartida: el ?q= de la URL se captura al inicio (un render inicial lo reemplazaría)
 const urlQ = new URLSearchParams(location.search).get('q') || '';
@@ -508,9 +513,8 @@ if (urlQ) { $q.value = urlQ; render(); }
 render();
 if (window.matchMedia && matchMedia('(pointer: fine)').matches) $q.focus();
 
-// Sincronización en tiempo real con Google Sheets vía server.js.
-// El servidor compara la hoja y devuelve `changed`. La página pregunta cada
-// 10 s; solo re-renderiza cuando la hoja cambió de verdad (sin parpadeos).
+// Sincronización en tiempo real con Google Sheets (gviz CSV directo).
+// La página pregunta cada 10 s; solo re-renderiza cuando la hoja cambió de verdad (hash diff).
 const $syncText = document.getElementById('sync-text');
 let lastHash = null;
 let pollStarted = false;
@@ -538,36 +542,38 @@ function syncText(msg, live) {
   }
 }
 
-function applyServerData(data) {
-  baseGames = data.games.slice();
-  currentCats = data.cats;
+function applyData(games, cats, hash) {
+  baseGames = games.slice();
+  currentCats = cats;
   currentGames = filteredGames();
   buildTable(currentGames, currentCats);
-  hints = ['Buscar juego'].concat(data.games.map(g => g.name));
-  syncText('En vivo · ' + data.games.length + ' juegos · ' + nowTime(), true);
+  hints = ['Buscar juego'].concat(games.map(g => g.name));
+  syncText('En vivo · ' + games.length + ' juegos · ' + nowTime(), true);
   flashSheet();
   renderStats(currentGames);
+  lastHash = hash;
 }
 
-async function syncWithServer() {
+async function syncWithSheet() {
   if (document.hidden) return;
   try {
     syncText('Conectando…');
-    const res = await fetch('/api/games');
+    const res = await fetch(SHEET_CSV_URL);
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (!data.success || !data.games || !data.games.length) {
-      syncText('Caché local (' + currentGames.length + ' juegos)');
+    const csvText = await res.text();
+    const hash = await sha1(csvText);
+    if (lastHash && hash === lastHash) {
+      syncText('En vivo · ' + baseGames.length + ' juegos · ' + nowTime(), true);
       return;
     }
-    const changed = !!data.changed || data.hash !== lastHash;
-    lastHash = data.hash || lastHash;
-    if (changed) {
-      applyServerData(data);
-      lastHash = data.hash;
-    } else {
-      syncText('En vivo · ' + data.games.length + ' juegos · ' + nowTime(), true);
-    }
+    const { cats, rawGames } = parseGoogleSheetsCSV(csvText);
+    // Convertir rawGames al formato que espera la app (con cover null, se usará data.js como fallback)
+    const games = rawGames.map(g => ({
+      name: g.name,
+      cover: null,
+      players: g.players
+    }));
+    applyData(games, cats, hash);
   } catch (err) {
     console.warn('Sync fallback to local cache:', err);
     syncText('Caché local (' + currentGames.length + ' juegos)');
@@ -575,11 +581,20 @@ async function syncWithServer() {
   // Start polling AFTER the first attempt (success or failure), not inside try
   if (!pollStarted) {
     pollStarted = true;
-    setInterval(syncWithServer, 10000);
+    setInterval(syncWithSheet, 10000);
   }
 }
 
-syncWithServer();
+// SHA-1 para hash del CSV (Web Crypto API)
+async function sha1(text) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+syncWithSheet();
 
 /* ——— Cursor propio y sonidos suaves ——— */
 (function () {
