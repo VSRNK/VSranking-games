@@ -460,7 +460,8 @@ main {
      los primeros ~90px de la tabla — la retícula se repliega antes de que
      llegue a las notas. */
   background: transparent;
-  padding-bottom: 3rem;
+  /* padding-bottom quitado: el aire final lo pone margin-bottom del último .game
+     (3.5rem !important) para evitar colapso de márgenes y forzar separación visual. */
 }
 .sheet::-webkit-scrollbar { height: 10px; }
 .sheet::-webkit-scrollbar-track { background: transparent; }
